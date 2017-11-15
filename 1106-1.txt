@@ -1,0 +1,201 @@
+include HT66F50.inc
+
+ds	.section	'data'
+KEY   EQU  PA
+KEYC  EQU  PAC
+KEYPU EQU  PAPU
+DATA   EQU  PC
+DATAC  EQU  PCC
+SCAN  EQU  PD
+SCANC EQU  PDC
+NUM   DB  ?
+NUM1  DB  ?
+DEL1  DB  ?
+DEL2  DB  ?
+DEL3  DB  ?
+COUNT DB  ?
+COUNT2 DB ?
+L1    DB  ?
+L2    DB  ?
+L3    DB  ?
+L4    DB  ?
+cs	.section	at  000h	'code'
+
+    ORG 00H
+    
+INIT:
+    MOV A,08h
+    MOV CP0C,A
+    MOV CP1C,A
+    CLR ACERL
+    SET KEYC
+    CLR DATAC
+    CLR SCANC
+    CLR DATA
+    CLR SCAN
+    MOV A,11110000B
+    MOV KEYC,A
+    MOV KEYPU,A
+    MOV A,0
+    MOV NUM,A
+    MOV A,16
+    MOV L1,A
+    MOV L2,A
+    MOV L3,A
+    MOV L4,A
+    
+  
+    
+    
+    MAIN1:
+    MOV A,40
+    MOV COUNT2,A
+    MOV A,0FEh
+    MOV SCAN,A
+
+    MOV A,11110111B
+    MOV KEY,A
+    CLR NUM
+    MOV A,4
+    MOV COUNT,A
+
+
+
+
+    
+    
+
+    
+SCANBU:
+    MOV A,0FEH
+    MOV SCAN,A
+    SNZ  KEY.4
+    JMP  END_KEY
+    INC  NUM
+    MOV  A,L1
+    CALL TAB123
+    MOV  DATA,A
+    CALL DELAY
+    CLR  DATA
+    RL   SCAN
+    SNZ  KEY.5
+    JMP  END_KEY
+    INC  NUM
+    MOV  A,L2
+    CALL TAB123
+    MOV  DATA,A
+    CALL DELAY
+    CLR  DATA
+    RL   SCAN
+    SNZ  KEY.6
+    JMP  END_KEY
+    INC  NUM
+    MOV  A,L3
+    CALL TAB123
+    MOV  DATA,A
+    CALL DELAY
+    CLR  DATA
+    RL   SCAN
+    SNZ  KEY.7
+    JMP  END_KEY
+    INC  NUM
+    MOV  A,L4
+    CALL TAB123
+    MOV  DATA,A
+    CALL DELAY
+    CLR  DATA
+    RR  KEY
+    SDZ  COUNT
+    JMP  SCANBU
+    JMP MAIN1
+
+END_KEY:
+    MOV  A,L3
+    MOV  L4,A
+    MOV  A,L2
+    MOV  L3,A
+    MOV  A,L1
+    MOV  L2,A
+    MOV  A,NUM
+    MOV  L1,A
+
+    MAIN2:
+    MOV A,0FEh
+    MOV SCAN,A
+    MOV A,L1
+    CALL TAB123
+    MOV DATA,A
+    CALL DELAY
+    CLR DATA
+    RL  SCAN
+    
+    MOV A,L2
+    CALL TAB123
+    MOV DATA,A
+    CALL DELAY
+    CLR DATA
+    RL  SCAN
+    
+    MOV A,L3
+    CALL TAB123
+    MOV DATA,A
+    CALL DELAY
+    CLR DATA
+    RL  SCAN
+    
+    MOV A,L4
+    CALL TAB123
+    MOV DATA,A
+    CALL DELAY
+    CLR DATA
+    RL  SCAN
+    SDZ COUNT2
+    JMP MAIN2
+    JMP MAIN1
+    
+
+DELAY	PROC
+	 MOV  A, 1
+	 MOV  DEL1,A
+DEL_1:
+	 MOV  A, 25
+	 MOV  DEL2,A
+DEL_2:
+	 MOV  A, 30
+	 MOV  DEL3, A
+DEL_3:
+ 	 SDZ  DEL3
+	 JMP  DEL_3
+	 SDZ  DEL2
+	 JMP  DEL_2
+	 SDZ  DEL1
+	 JMP  DEL_1
+	 RET
+DELAY	ENDP
+    
+
+TAB123 PROC
+ADDM A,PCL
+
+RET   A,00111111B
+RET   A,00000110B
+RET   A,01011011B
+RET   A,01001111B
+RET   A,01100110B
+RET   A,01101101B
+RET   A,01111101B
+RET   A,00000111B
+RET   A,01111111B
+RET   A,01100111B
+RET   A,01110111B
+RET   A,01111100B
+RET   A,01011000B
+RET   A,01011110B
+RET   A,01111001B
+RET   A,01110001B
+RET   A,00000000B
+
+TAB123  ENDP
+END
+
+
