@@ -1,0 +1,235 @@
+include HT66F50.inc
+
+ds	.section	'data'
+KEY   EQU  PA
+KEYC  EQU  PAC
+KEYPU EQU  PAPU
+DATA  EQU  PC	;七段輸出
+DATAC EQU  PCC
+SCAN  EQU  PD	;七段控制線
+SCANC EQU  PDC
+
+STACK_PSW DB ?
+STACK_ACC DB ?
+
+NUM   DB  ?
+NUM1  DB  ?
+DEL1  DB  ?
+DEL2  DB  ?
+DEL3  DB  ?
+COUNT DB  ?
+COUNT2 DB ?
+L1    DB  ?
+L2    DB  ?
+L3    DB  ?
+L4    DB  ?
+TIME  DB  ?
+cs	.section	at  000h	'code'
+
+    ORG 00H
+    JMP INIT 
+    ORG 14H
+    JMP TM0_ISR
+INIT:
+;====關閉比較器ADC
+    MOV A,08h
+    MOV CP0C,A
+    MOV CP1C,A
+    CLR ACERL
+;====設定TIMER
+	MOV A, 00000000B
+	MOV TM0C0, A
+	MOV A, 11000001B
+	MOV TM0C1, A
+	MOV A, LOW 150
+	MOV TM0AL, A
+	MOV A, HIGH 150
+	MOV TM0AH, A
+;====設定中斷
+	SET T0AE
+	SET MF0E
+	SET EMI
+	SET T0ON
+;====設定I/O
+    CLR DATAC
+    CLR SCANC
+    CLR DATA
+    CLR SCAN
+    MOV A,11110000B
+    MOV KEYC,A	;[PA0:3] 設為輸出 , [PA4;7] 設為輸入
+    MOV KEYPU,A ;PULL HIGHT
+    CLR NUM		;NUM要記錄第幾個按鈕
+    MOV A,16
+    MOV L1,A	;
+    MOV L2,A
+    MOV L3,A
+    MOV L4,A
+   	MOV A,1
+	MOV TIME,A
+	JMP MAIN1
+	
+	CHECK:
+	SNZ KEY.4
+	JMP $-1
+	JMP END_KEY
+	CHECK1:
+	SNZ KEY.5
+	JMP $-1
+	JMP END_KEY
+	CHECK2:
+	SNZ KEY.6
+	JMP $-1
+	JMP END_KEY
+	CHECK3:
+	SNZ KEY.7
+	JMP $-1
+	JMP END_KEY
+	
+    
+    
+    MAIN1:
+    MOV A,40
+    MOV COUNT2,A
+    MOV A,0FEh		
+    MOV SCAN,A	;設定七段第0顆亮
+
+    MOV A,11110111B	;先掃R3 
+    MOV KEY,A
+    CLR NUM		;NUM要記錄第幾個按鈕
+    MOV A,4		;掃描次數
+    MOV COUNT,A
+
+
+
+SCANBU:
+    MOV A,11111110B
+    MOV SCAN,A
+    SNZ  KEY.4	
+    JMP CHECK
+    INC  NUM	;按鈕沒被按下就執行這行，將NUM+1
+
+    SNZ  KEY.5	;判斷KEY.5是否按下
+    JMP  CHECK1
+    INC  NUM
+
+    SNZ  KEY.6
+    JMP  CHECK2
+    INC  NUM
+
+    SNZ  KEY.7
+    JMP  CHECK3
+    INC  NUM
+
+    RR  KEY
+    SDZ  COUNT
+    JMP  SCANBU
+    JMP MAIN1
+
+END_KEY:
+    MOV  A,L3	
+    MOV  L4,A  ;L4 = 16
+    MOV  A,L2  
+    MOV  L3,A  ;L3 = 16
+    MOV  A,L1  
+    MOV  L2,A
+    MOV  A,NUM
+    MOV  L1,A
+	JMP  MAIN1
+
+
+TM0_ISR:
+	MOV STACK_ACC, A
+	MOV A, STATUS
+	MOV STACK_PSW, A
+	CLR T0AF
+	MOV A,40
+	MOV COUNT2,A
+	SDZ TIME
+	JMP TM0_ISR1
+	
+  MAIN2:
+    MOV A,0FEh
+    MOV SCAN,A
+    MOV A,L1
+    CALL TAB123
+    MOV DATA,A
+    CALL DELAY
+    CLR DATA
+    RL  SCAN
+    
+    MOV A,L2
+    CALL TAB123
+    MOV DATA,A
+    CALL DELAY
+    CLR DATA
+    RL  SCAN
+    
+    MOV A,L3
+    CALL TAB123
+    MOV DATA,A
+    CALL DELAY
+    CLR DATA
+    RL  SCAN
+    
+    MOV A,L4
+    CALL TAB123
+    MOV DATA,A
+    CALL DELAY
+    CLR DATA
+	RL SCAN
+	MOV A,1
+	MOV TIME,A
+
+	
+	TM0_ISR1:
+	MOV A, STACK_PSW
+	MOV STATUS, A
+	MOV A, STACK_ACC
+	RETI
+
+
+DELAY	PROC
+	 MOV  A, 1
+	 MOV  DEL1,A
+DEL_1:
+	 MOV  A, 1
+	 MOV  DEL2,A
+DEL_2:
+	 MOV  A, 3
+	 MOV  DEL3, A
+DEL_3:
+ 	 SDZ  DEL3
+	 JMP  DEL_3
+	 SDZ  DEL2
+	 JMP  DEL_2
+	 SDZ  DEL1
+	 JMP  DEL_1
+	 RET
+DELAY	ENDP
+    
+
+TAB123 PROC
+ADDM A,PCL
+
+RET   A,00111111B ;0
+RET   A,00000110B ;1
+RET   A,01011011B ;2
+RET   A,01001111B ;3
+RET   A,01100110B ;4
+RET   A,01101101B ;5
+RET   A,01111101B ;6
+RET   A,00000111B ;7
+RET   A,01111111B ;8
+RET   A,01100111B ;9
+RET   A,01110111B ;A
+RET   A,01111100B ;B
+RET   A,01011000B ;C
+RET   A,01011110B ;D
+RET   A,01111001B ;E
+RET   A,01110001B ;F
+RET   A,00000000B ;
+
+TAB123  ENDP
+END
+
+
